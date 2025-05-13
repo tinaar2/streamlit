@@ -1,0 +1,37 @@
+import streamlit as st
+import pandas as pd
+
+st.title("🎓 Analisa Jurusan PTN: Sepi Peminat tapi Prospek Kerja Bagus")
+
+# Load datasets
+peminat_df = pd.read_csv("jurusan sepi peminat.csv")
+prospek_df = pd.read_csv("prospek kerja tiap jurusan.csv")
+
+# Normalisasi nama jurusan ke huruf kecil
+peminat_df['jurusan'] = peminat_df['jurusan'].str.lower().str.strip()
+prospek_df['jurusan'] = prospek_df['jurusan'].str.lower().str.strip()
+
+# Gabungkan berdasarkan nama jurusan
+merged_df = pd.merge(peminat_df, prospek_df, on='jurusan', how='inner')
+
+# Asumsikan kita memiliki kolom 'peminat' dan 'prospek_kerja' (bisa ubah sesuai struktur file Anda)
+# Filter jurusan dengan peminat rendah (misalnya kuartil bawah) dan prospek kerja tinggi
+peminat_threshold = merged_df['peminat'].quantile(0.25)
+prospek_threshold = merged_df['prospek_kerja'].quantile(0.75)
+
+st.sidebar.header("Filter")
+custom_peminat_threshold = st.sidebar.slider("Batas Maksimal Peminat", int(merged_df['peminat'].min()), int(merged_df['peminat'].max()), int(peminat_threshold))
+custom_prospek_threshold = st.sidebar.slider("Batas Minimal Prospek Kerja", int(merged_df['prospek_kerja'].min()), int(merged_df['prospek_kerja'].max()), int(prospek_threshold))
+
+filtered_df = merged_df[
+    (merged_df['peminat'] <= custom_peminat_threshold) &
+    (merged_df['prospek_kerja'] >= custom_prospek_threshold)
+]
+
+st.subheader("📊 Jurusan Rekomendasi")
+st.write(f"Dengan peminat ≤ {custom_peminat_threshold} dan prospek kerja ≥ {custom_prospek_threshold}")
+st.dataframe(filtered_df.sort_values(by="prospek_kerja", ascending=False))
+
+# Optional: visualisasi
+st.subheader("📈 Visualisasi")
+st.bar_chart(filtered_df.set_index("jurusan")["prospek_kerja"])
